@@ -10,13 +10,35 @@
 #include <string.h>
 
 /* Edit these macros and recompile to change the configuration. */
+#ifndef BUFFER_A_SIZE
 #define BUFFER_A_SIZE 5
+#endif
+#ifndef BUFFER_B_SIZE
 #define BUFFER_B_SIZE 5
+#endif
+#ifndef NUM_PRODUCERS
 #define NUM_PRODUCERS 3
+#endif
+#ifndef NUM_WORKERS
 #define NUM_WORKERS 3
+#endif
+#ifndef NUM_CONSUMERS
 #define NUM_CONSUMERS 2
+#endif
+#ifndef ITEMS_PER_PRODUCER
 #define ITEMS_PER_PRODUCER 4
+#endif
 #define TOTAL_ITEMS (NUM_PRODUCERS * ITEMS_PER_PRODUCER)
+
+#ifndef PROD_DELAY_US
+#define PROD_DELAY_US 0
+#endif
+#ifndef WORK_DELAY_US
+#define WORK_DELAY_US 0
+#endif
+#ifndef CONS_DELAY_US
+#define CONS_DELAY_US 0
+#endif
 
 typedef struct {
     int id;
@@ -154,6 +176,7 @@ static void producer(shared_t *sh, int producer_id)
         item.id = producer_id * ITEMS_PER_PRODUCER + j;
         item.producer_id = producer_id;
         item.value = item.id + 1;
+        if (PROD_DELAY_US > 0) usleep(PROD_DELAY_US);
         buffer_a_put(sh, item);
     }
     signal_producer_done(sh);
@@ -181,6 +204,7 @@ static void worker(shared_t *sh, int worker_id)
         res.worker_id = worker_id;
         res.result = (long)item.value*item.value;
         res.is_term = 0;
+        if (WORK_DELAY_US > 0) usleep(WORK_DELAY_US);
         buffer_b_put(sh, res);
     }
     signal_worker_done(sh);
@@ -203,6 +227,7 @@ static void consumer(shared_t *sh, int consumer_id)
         {
             break;
         }
+        if (CONS_DELAY_US > 0) usleep(CONS_DELAY_US);
         sem_wait(&sh->results_mutex);
         sh->total_collected++;
         if (res.id < 0 || res.id >= TOTAL_ITEMS)
